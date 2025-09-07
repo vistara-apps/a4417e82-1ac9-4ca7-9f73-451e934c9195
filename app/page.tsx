@@ -14,9 +14,16 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
-import { Plus, Star, TrendingUp, Calendar, BookOpen } from 'lucide-react';
+import { FileUpload } from '@/components/ui/FileUpload';
+import { Plus, Star, TrendingUp, Calendar, BookOpen, Users, DollarSign } from 'lucide-react';
 import { type Group, type StudySession, type Resource, type Project } from '@/lib/types';
 import { APP_CONFIG, MAJORS, INTERESTS } from '@/lib/constants';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useGroups, useCreateGroup, useJoinGroup, useFeatureGroup } from '@/lib/hooks/useGroups';
+import { SupabaseService } from '@/lib/services/supabase';
+import { IPFSService } from '@/lib/services/ipfs';
+import { PaymentService } from '@/lib/services/payments';
+import toast from 'react-hot-toast';
 
 // Mock data for demonstration
 const mockGroups: Group[] = [
@@ -140,23 +147,213 @@ const mockProjects: Project[] = [
 
 export default function HomePage() {
   const { setFrameReady } = useMiniKit();
+  const { user, isAuthenticated, isLoading: authLoading, login, createUser } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [createType, setCreateType] = useState<'group' | 'session' | 'project'>('group');
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
+  const [createType, setCreateType] = useState<'group' | 'session' | 'project' | 'resource'>('group');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // Form states
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    interests: [] as string[],
+    privacyLevel: 'public' as 'public' | 'private',
+    dateTime: '',
+    location: '',
+    maxAttendees: '',
+    requiredSkills: [] as string[],
+    category: 'hackathon' as 'hackathon' | 'coursework' | 'research' | 'extracurricular',
+    deadline: '',
+    course: '',
+    professor: '',
+    topic: '',
+  });
+
+  // Onboarding form state
+  const [onboardingData, setOnboardingData] = useState({
+    displayName: '',
+    major: '',
+    interests: [] as string[],
+    bio: '',
+  });
+
+  // Data hooks
+  const { groups, isLoading: groupsLoading } = useGroups({
+    search: searchQuery,
+  });
+  const createGroupMutation = useCreateGroup();
+  const joinGroupMutation = useJoinGroup();
+  const featureGroupMutation = useFeatureGroup();
   
   useEffect(() => {
     setFrameReady();
   }, [setFrameReady]);
+
+  // Check if user needs onboarding
+  useEffect(() => {
+    if (isAuthenticated && !user && !authLoading) {
+      setIsOnboardingModalOpen(true);
+    }
+  }, [isAuthenticated, user, authLoading]);
   
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    // Implement search logic here
   };
   
-  const handleCreateNew = (type: 'group' | 'session' | 'project') => {
+  const handleCreateNew = (type: 'group' | 'session' | 'project' | 'resource') => {
+    if (!isAuthenticated) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+    if (!user) {
+      toast.error('Please complete your profile first');
+      return;
+    }
     setCreateType(type);
     setIsCreateModalOpen(true);
+  };
+
+  const handleOnboardingSubmit = async () => {
+    if (!onboardingData.displayName || !onboardingData.major) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      await createUser(onboardingData);
+      setIsOnboardingModalOpen(false);
+      toast.success('Welcome to CampusConnect!');
+    } catch (error) {
+      console.error('Onboarding error:', error);
+      toast.error('Failed to create profile');
+    }
+  };
+
+  const handleCreateSubmit = async () => {
+    if (!user?.userId) return;
+
+    try {
+      if (createType === 'group') {
+        if (!formData.name || !formData.description) {
+          toast.error('Please fill in all required fields');
+          return;
+        }
+
+        await createGroupMutation.mutateAsync({
+          name: formData.name,
+          description: formData.description,
+          interests: formData.interests,
+          privacyLevel: formData.privacyLevel,
+        });
+      } else if (createType === 'session') {
+        if (!formData.name || !formData.description || !formData.dateTime || !formData.location) {
+          toast.error('Please fill in all required fields');
+          return;
+        }
+
+        await SupabaseService.createStudySession({
+          groupId: 'default', // You'd need to select a group
+          title: formData.name,
+          description: formData.description,
+          dateTime: formData.dateTime,
+          location: formData.location,
+          maxAttendees: formData.maxAttendees ? parseInt(formData.maxAttendees) : undefined,
+          createdBy: user.userId,
+        });
+        toast.success('Study session created!');
+      } else if (createType === 'project') {
+        if (!formData.name || !formData.description) {
+          toast.error('Please fill in all required fields');
+          return;
+        }
+
+        await SupabaseService.createProject({
+          title: formData.name,
+          description: formData.description,
+          requiredSkills: formData.requiredSkills,
+          createdBy: user.userId,
+          deadline: formData.deadline || undefined,
+          category: formData.category,
+        });
+        toast.success('Project created!');
+      } else if (createType === 'resource') {
+        if (!selectedFile || !formData.description) {
+          toast.error('Please select a file and add a description');
+          return;
+        }
+
+        setIsUploading(true);
+        
+        // Upload to IPFS
+        const ipfsResult = await IPFSService.uploadFile(selectedFile, {
+          name: formData.name || selectedFile.name,
+          description: formData.description,
+          course: formData.course,
+          professor: formData.professor,
+          topic: formData.topic,
+        });
+
+        // Save to database
+        await SupabaseService.createResource({
+          groupId: 'default', // You'd need to select a group
+          uploadedBy: user.userId,
+          fileName: selectedFile.name,
+          storageHash: ipfsResult.IpfsHash,
+          tags: {
+            course: formData.course,
+            professor: formData.professor,
+            topic: formData.topic,
+          },
+          description: formData.description,
+        });
+
+        toast.success('Resource uploaded successfully!');
+        setIsUploading(false);
+      }
+
+      // Reset form
+      setFormData({
+        name: '',
+        description: '',
+        interests: [],
+        privacyLevel: 'public',
+        dateTime: '',
+        location: '',
+        maxAttendees: '',
+        requiredSkills: [],
+        category: 'hackathon',
+        deadline: '',
+        course: '',
+        professor: '',
+        topic: '',
+      });
+      setSelectedFile(null);
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error('Create error:', error);
+      toast.error(`Failed to create ${createType}`);
+      setIsUploading(false);
+    }
+  };
+
+  const handleJoinGroup = async (groupId: string) => {
+    if (!isAuthenticated) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+    await joinGroupMutation.mutateAsync(groupId);
+  };
+
+  const handleFeatureGroup = async (groupId: string) => {
+    if (!isAuthenticated) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+    await featureGroupMutation.mutateAsync(groupId);
   };
   
   const renderHomeContent = () => (
@@ -166,14 +363,29 @@ export default function HomePage() {
         <h1 className="text-display text-white mb-2">{APP_CONFIG.name}</h1>
         <p className="text-body text-white text-opacity-80 mb-6">{APP_CONFIG.tagline}</p>
         
-        <Wallet>
-          <ConnectWallet>
+        {!isAuthenticated ? (
+          <Button onClick={login} variant="primary" size="lg">
+            Connect Wallet to Get Started
+          </Button>
+        ) : user ? (
+          <div className="flex items-center justify-center space-x-4">
             <div className="flex items-center space-x-2">
-              <Avatar size="sm" />
-              <Name />
+              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-semibold">
+                  {user.displayName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="text-left">
+                <p className="text-white font-medium">{user.displayName}</p>
+                <p className="text-sm text-gray-400">{user.major}</p>
+              </div>
             </div>
-          </ConnectWallet>
-        </Wallet>
+          </div>
+        ) : (
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-600 rounded w-32 mx-auto"></div>
+          </div>
+        )}
       </Card>
       
       {/* Quick Stats */}
@@ -207,25 +419,54 @@ export default function HomePage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-heading text-white">Featured Groups</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setActiveTab('groups')}
-          >
-            View All
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleCreateNew('group')}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveTab('groups')}
+            >
+              View All
+            </Button>
+          </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mockGroups.slice(0, 3).map((group) => (
-            <GroupCard
-              key={group.groupId}
-              group={group}
-              onJoin={(id) => console.log('Join group:', id)}
-              onView={(id) => console.log('View group:', id)}
-            />
-          ))}
-        </div>
+        {groupsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="glass-card h-48 bg-gray-700"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {groups.slice(0, 3).map((group) => (
+              <GroupCard
+                key={group.groupId}
+                group={group}
+                onJoin={() => handleJoinGroup(group.groupId)}
+                onView={(id) => console.log('View group:', id)}
+              />
+            ))}
+            {groups.length === 0 && (
+              <div className="col-span-3 text-center py-12">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-400 mb-4">No groups found</p>
+                <Button onClick={() => handleCreateNew('group')}>
+                  Create the First Group
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Upcoming Sessions */}
@@ -389,47 +630,216 @@ export default function HomePage() {
     </div>
   );
   
+  const renderOnboardingModal = () => (
+    <Modal
+      isOpen={isOnboardingModalOpen}
+      onClose={() => {}}
+      title="Welcome to CampusConnect!"
+      className="max-w-lg"
+    >
+      <div className="space-y-4">
+        <p className="text-gray-300 mb-6">
+          Let's set up your profile to help you connect with like-minded students.
+        </p>
+        
+        <Input
+          placeholder="Display Name *"
+          value={onboardingData.displayName}
+          onChange={(e) => setOnboardingData(prev => ({ ...prev, displayName: e.target.value }))}
+        />
+        
+        <select
+          className="input-field w-full"
+          value={onboardingData.major}
+          onChange={(e) => setOnboardingData(prev => ({ ...prev, major: e.target.value }))}
+        >
+          <option value="">Select Major *</option>
+          {MAJORS.map((major) => (
+            <option key={major} value={major}>{major}</option>
+          ))}
+        </select>
+        
+        <textarea
+          placeholder="Bio (optional)"
+          className="input-field w-full h-24 resize-none"
+          value={onboardingData.bio}
+          onChange={(e) => setOnboardingData(prev => ({ ...prev, bio: e.target.value }))}
+        />
+        
+        <div>
+          <label className="block text-sm text-gray-300 mb-2">Interests</label>
+          <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+            {INTERESTS.map((interest) => (
+              <label key={interest} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={onboardingData.interests.includes(interest)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setOnboardingData(prev => ({
+                        ...prev,
+                        interests: [...prev.interests, interest]
+                      }));
+                    } else {
+                      setOnboardingData(prev => ({
+                        ...prev,
+                        interests: prev.interests.filter(i => i !== interest)
+                      }));
+                    }
+                  }}
+                  className="rounded"
+                />
+                <span className="text-sm text-gray-300">{interest}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        <Button
+          variant="primary"
+          onClick={handleOnboardingSubmit}
+          className="w-full mt-6"
+          disabled={!onboardingData.displayName || !onboardingData.major}
+        >
+          Complete Profile
+        </Button>
+      </div>
+    </Modal>
+  );
+
   const renderCreateModal = () => (
     <Modal
       isOpen={isCreateModalOpen}
       onClose={() => setIsCreateModalOpen(false)}
       title={`Create New ${createType.charAt(0).toUpperCase() + createType.slice(1)}`}
+      className="max-w-lg"
     >
       <div className="space-y-4">
-        <Input placeholder={`${createType.charAt(0).toUpperCase() + createType.slice(1)} Name`} />
+        <Input
+          placeholder={`${createType.charAt(0).toUpperCase() + createType.slice(1)} Name`}
+          value={formData.name}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+        />
         <textarea
           placeholder="Description"
           className="input-field w-full h-24 resize-none"
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
         />
         
         {createType === 'group' && (
           <>
-            <select className="input-field w-full">
+            <select
+              className="input-field w-full"
+              value={formData.privacyLevel}
+              onChange={(e) => setFormData(prev => ({ ...prev, privacyLevel: e.target.value as 'public' | 'private' }))}
+            >
               <option value="public">Public Group</option>
               <option value="private">Private Group</option>
             </select>
-            <Input placeholder="Add interests (comma separated)" />
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">Interests</label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                {INTERESTS.map((interest) => (
+                  <label key={interest} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.interests.includes(interest)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData(prev => ({
+                            ...prev,
+                            interests: [...prev.interests, interest]
+                          }));
+                        } else {
+                          setFormData(prev => ({
+                            ...prev,
+                            interests: prev.interests.filter(i => i !== interest)
+                          }));
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-300">{interest}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </>
         )}
         
         {createType === 'session' && (
           <>
-            <Input type="datetime-local" />
-            <Input placeholder="Location or Virtual Link" />
-            <Input type="number" placeholder="Max Attendees (optional)" />
+            <Input
+              type="datetime-local"
+              value={formData.dateTime}
+              onChange={(e) => setFormData(prev => ({ ...prev, dateTime: e.target.value }))}
+            />
+            <Input
+              placeholder="Location or Virtual Link"
+              value={formData.location}
+              onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+            />
+            <Input
+              type="number"
+              placeholder="Max Attendees (optional)"
+              value={formData.maxAttendees}
+              onChange={(e) => setFormData(prev => ({ ...prev, maxAttendees: e.target.value }))}
+            />
           </>
         )}
         
         {createType === 'project' && (
           <>
-            <select className="input-field w-full">
+            <select
+              className="input-field w-full"
+              value={formData.category}
+              onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as any }))}
+            >
               <option value="hackathon">Hackathon</option>
               <option value="coursework">Coursework</option>
               <option value="research">Research</option>
               <option value="extracurricular">Extracurricular</option>
             </select>
-            <Input placeholder="Required Skills (comma separated)" />
-            <Input type="date" placeholder="Deadline (optional)" />
+            <Input
+              placeholder="Required Skills (comma separated)"
+              value={formData.requiredSkills.join(', ')}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                requiredSkills: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+              }))}
+            />
+            <Input
+              type="date"
+              placeholder="Deadline (optional)"
+              value={formData.deadline}
+              onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
+            />
+          </>
+        )}
+
+        {createType === 'resource' && (
+          <>
+            <FileUpload
+              onFileSelect={setSelectedFile}
+              onFileRemove={() => setSelectedFile(null)}
+              selectedFile={selectedFile}
+            />
+            <Input
+              placeholder="Course"
+              value={formData.course}
+              onChange={(e) => setFormData(prev => ({ ...prev, course: e.target.value }))}
+            />
+            <Input
+              placeholder="Professor"
+              value={formData.professor}
+              onChange={(e) => setFormData(prev => ({ ...prev, professor: e.target.value }))}
+            />
+            <Input
+              placeholder="Topic"
+              value={formData.topic}
+              onChange={(e) => setFormData(prev => ({ ...prev, topic: e.target.value }))}
+            />
           </>
         )}
         
@@ -438,18 +848,17 @@ export default function HomePage() {
             variant="outline"
             onClick={() => setIsCreateModalOpen(false)}
             className="flex-1"
+            disabled={isUploading}
           >
             Cancel
           </Button>
           <Button
             variant="primary"
-            onClick={() => {
-              console.log(`Create ${createType}`);
-              setIsCreateModalOpen(false);
-            }}
+            onClick={handleCreateSubmit}
             className="flex-1"
+            disabled={isUploading}
           >
-            Create
+            {isUploading ? 'Creating...' : 'Create'}
           </Button>
         </div>
       </div>
@@ -487,6 +896,7 @@ export default function HomePage() {
         </main>
         
         {/* Modals */}
+        {renderOnboardingModal()}
         {renderCreateModal()}
       </div>
     </div>
