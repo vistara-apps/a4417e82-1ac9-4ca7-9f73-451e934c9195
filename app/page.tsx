@@ -14,9 +14,11 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
-import { Plus, Star, TrendingUp, Calendar, BookOpen } from 'lucide-react';
+import { Plus, Star, TrendingUp, Calendar, BookOpen, Users } from 'lucide-react';
 import { type Group, type StudySession, type Resource, type Project } from '@/lib/types';
-import { APP_CONFIG, MAJORS, INTERESTS } from '@/lib/constants';
+import { APP_CONFIG, MAJORS, INTERESTS, MICRO_TRANSACTION_PRICES } from '@/lib/constants';
+import { PaymentButton } from '@/components/PaymentButton';
+import { PaymentTest } from '@/components/PaymentTest';
 
 // Mock data for demonstration
 const mockGroups: Group[] = [
@@ -253,6 +255,72 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* Premium Features */}
+      <div>
+        <h2 className="text-heading text-white mb-4">Premium Features</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="text-center">
+            <Star className="w-8 h-8 mx-auto mb-3 text-yellow-400" />
+            <h3 className="text-body text-white mb-2">Featured Post</h3>
+            <p className="text-caption mb-4">Boost your study group to the top of the feed</p>
+            <PaymentButton
+              amount={MICRO_TRANSACTION_PRICES.FEATURED_POST}
+              description="Feature your study group post for 24 hours"
+              onSuccess={(hash) => console.log('Featured post payment successful:', hash)}
+              onError={(error) => console.error('Featured post payment failed:', error)}
+              size="sm"
+            >
+              Feature Post
+            </PaymentButton>
+          </Card>
+
+          <Card className="text-center">
+            <TrendingUp className="w-8 h-8 mx-auto mb-3 text-green-400" />
+            <h3 className="text-body text-white mb-2">Advanced Filters</h3>
+            <p className="text-caption mb-4">Access premium search and filtering options</p>
+            <PaymentButton
+              amount={MICRO_TRANSACTION_PRICES.ADVANCED_FILTERS}
+              description="Unlock advanced search filters for 30 days"
+              onSuccess={(hash) => console.log('Advanced filters payment successful:', hash)}
+              onError={(error) => console.error('Advanced filters payment failed:', error)}
+              size="sm"
+            >
+              Unlock Filters
+            </PaymentButton>
+          </Card>
+
+          <Card className="text-center">
+            <BookOpen className="w-8 h-8 mx-auto mb-3 text-purple-400" />
+            <h3 className="text-body text-white mb-2">Resource Bump</h3>
+            <p className="text-caption mb-4">Boost your resource to the top of search results</p>
+            <PaymentButton
+              amount={MICRO_TRANSACTION_PRICES.RESOURCE_BUMP}
+              description="Bump your resource to the top for 7 days"
+              onSuccess={(hash) => console.log('Resource bump payment successful:', hash)}
+              onError={(error) => console.error('Resource bump payment failed:', error)}
+              size="sm"
+            >
+              Bump Resource
+            </PaymentButton>
+          </Card>
+
+          <Card className="text-center">
+            <Calendar className="w-8 h-8 mx-auto mb-3 text-blue-400" />
+            <h3 className="text-body text-white mb-2">Premium Search</h3>
+            <p className="text-caption mb-4">Access AI-powered search recommendations</p>
+            <PaymentButton
+              amount={MICRO_TRANSACTION_PRICES.PREMIUM_SEARCH}
+              description="Enable premium search features for 30 days"
+              onSuccess={(hash) => console.log('Premium search payment successful:', hash)}
+              onError={(error) => console.error('Premium search payment failed:', error)}
+              size="sm"
+            >
+              Upgrade Search
+            </PaymentButton>
+          </Card>
+        </div>
+      </div>
     </div>
   );
   
@@ -386,6 +454,9 @@ export default function HomePage() {
           <p className="text-caption">No active projects.</p>
         </Card>
       </div>
+
+      {/* Payment Testing Section */}
+      <PaymentTest />
     </div>
   );
   
