@@ -56,3 +56,44 @@ export function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+
+// Search and filter utilities
+export function searchGroups(groups: any[], query: string) {
+  if (!query.trim()) return groups;
+  
+  const searchTerm = query.toLowerCase();
+  return groups.filter(group => 
+    group.name.toLowerCase().includes(searchTerm) ||
+    group.description.toLowerCase().includes(searchTerm) ||
+    group.interests.some((interest: string) => 
+      interest.toLowerCase().includes(searchTerm)
+    )
+  );
+}
+
+export function searchResources(resources: any[], query: string) {
+  if (!query.trim()) return resources;
+  
+  const searchTerm = query.toLowerCase();
+  return resources.filter(resource => 
+    resource.fileName.toLowerCase().includes(searchTerm) ||
+    resource.description.toLowerCase().includes(searchTerm) ||
+    resource.tags.course.toLowerCase().includes(searchTerm) ||
+    resource.tags.professor.toLowerCase().includes(searchTerm) ||
+    resource.tags.topic.toLowerCase().includes(searchTerm)
+  );
+}
+
+export function searchProjects(projects: any[], query: string) {
+  if (!query.trim()) return projects;
+  
+  const searchTerm = query.toLowerCase();
+  return projects.filter(project => 
+    project.title.toLowerCase().includes(searchTerm) ||
+    project.description.toLowerCase().includes(searchTerm) ||
+    project.requiredSkills.some((skill: string) => 
+      skill.toLowerCase().includes(searchTerm)
+    ) ||
+    project.category.toLowerCase().includes(searchTerm)
+  );
+}
