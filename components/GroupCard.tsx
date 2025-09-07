@@ -15,8 +15,8 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group, onJoin, onView, isJoined = false }: GroupCardProps) {
-  const handleJoin = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleJoin = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.stopPropagation();
     onJoin?.(group.groupId);
   };
   

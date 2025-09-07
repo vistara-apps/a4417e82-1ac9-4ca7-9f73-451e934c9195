@@ -19,8 +19,8 @@ export function StudySessionCard({
   onView, 
   isJoined = false 
 }: StudySessionCardProps) {
-  const handleJoin = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleJoin = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.stopPropagation();
     onJoin?.(session.sessionId);
   };
   

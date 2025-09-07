@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
-import { Plus, Star, TrendingUp, Calendar, BookOpen } from 'lucide-react';
+import { Plus, Star, TrendingUp, Calendar, BookOpen, Users } from 'lucide-react';
 import { type Group, type StudySession, type Resource, type Project } from '@/lib/types';
 import { APP_CONFIG, MAJORS, INTERESTS } from '@/lib/constants';
 
@@ -169,7 +169,7 @@ export default function HomePage() {
         <Wallet>
           <ConnectWallet>
             <div className="flex items-center space-x-2">
-              <Avatar size="sm" />
+              <Avatar className="w-8 h-8" />
               <Name />
             </div>
           </ConnectWallet>
@@ -355,7 +355,7 @@ export default function HomePage() {
   const renderProfileContent = () => (
     <div className="space-y-6">
       <Card className="text-center">
-        <Avatar size="lg" fallback="You" className="mx-auto mb-4" />
+        <Avatar className="w-16 h-16 mx-auto mb-4" />
         <h2 className="text-heading text-white mb-2">Your Profile</h2>
         <p className="text-caption mb-4">Complete your profile to connect with like-minded students</p>
         
