@@ -13,8 +13,8 @@ interface ResourceCardProps {
 }
 
 export function ResourceCard({ resource, onDownload, onView }: ResourceCardProps) {
-  const handleDownload = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDownload = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.stopPropagation();
     onDownload?.(resource.resourceId);
   };
   

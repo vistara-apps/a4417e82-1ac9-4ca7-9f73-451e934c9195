@@ -14,8 +14,8 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onJoin, onView, isJoined = false }: ProjectCardProps) {
-  const handleJoin = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleJoin = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.stopPropagation();
     onJoin?.(project.projectId);
   };
   
