@@ -5,6 +5,8 @@ export const APP_CONFIG = {
   tagline: 'Discover Your Tribe. Ace Your Studies.',
   version: '1.0.0',
   supportEmail: 'support@campusconnect.app',
+  baseChainId: 8453,
+  usdcAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
 };
 
 export const MAJORS = [
