@@ -1,0 +1,30 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "frame": {
+    "version": "1",
+    "name": "CampusConnect",
+    "subtitle": "Built with Zara",
+    "description": "CampusConnect is a Base Mini App built with Zara.",
+    "iconUrl": "https://0co.to/images/zara-2.png",
+    "homeUrl": "https://a4417e821ac94ca79f73451e934c9195-ksnx.vercel.app",
+    "splashImageUrl": "https://a4417e821ac94ca79f73451e934c9195-ksnx.vercel.app/splash.png",
+    "splashBackgroundColor": "#000000",
+    "heroImageUrl": "https://a4417e821ac94ca79f73451e934c9195-ksnx.vercel.app/image.png",
+    "tagline": "CampusConnect",
+    "screenshotUrls": [
+      "https://a4417e821ac94ca79f73451e934c9195-ksnx.vercel.app/screenshot.png",
+      "https://a4417e821ac94ca79f73451e934c9195-ksnx.vercel.app/screenshot.png"
+    ],
+    "primaryCategory": "social",
+    "tags": [
+      "base",
+      "miniapp",
+      "onchainkit"
+    ],
+    "webhookUrl": "https://a4417e821ac94ca79f73451e934c9195-ksnx.vercel.app/api/webhook"
+  }
+}
