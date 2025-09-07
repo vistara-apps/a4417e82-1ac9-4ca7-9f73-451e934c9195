@@ -15,35 +15,35 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white bg-opacity-10 backdrop-blur-md border border-white border-opacity-20 rounded-lg shadow-card;
+    @apply bg-white bg-opacity-10 backdrop-blur-md border border-white border-opacity-20 rounded-xl shadow-card;
   }
   
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl;
+    @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
   }
   
   .btn-secondary {
-    @apply bg-white bg-opacity-20 text-white px-6 py-3 rounded-lg font-medium hover:bg-opacity-30 transition-all duration-200 backdrop-blur-sm;
+    @apply bg-white bg-opacity-20 text-white px-6 py-3 rounded-lg font-medium hover:bg-opacity-30 transition-all duration-200 backdrop-blur-sm transform hover:-translate-y-0.5;
   }
   
   .btn-outline {
-    @apply border border-white border-opacity-30 text-white px-6 py-3 rounded-lg font-medium hover:bg-white hover:bg-opacity-10 transition-all duration-200;
+    @apply border border-white border-opacity-30 text-white px-6 py-3 rounded-lg font-medium hover:bg-white hover:bg-opacity-10 transition-all duration-200 transform hover:-translate-y-0.5;
   }
   
   .input-field {
-    @apply bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg px-4 py-3 text-white placeholder-white placeholder-opacity-60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent;
+    @apply bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg px-4 py-3 text-white placeholder-white placeholder-opacity-60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200;
   }
   
   .card-hover {
-    @apply hover:bg-opacity-15 hover:scale-105 transition-all duration-200 cursor-pointer;
+    @apply hover:bg-opacity-15 hover:scale-[1.02] transition-all duration-300 cursor-pointer hover:shadow-xl;
   }
   
   .text-display {
-    @apply text-2xl font-bold;
+    @apply text-3xl font-bold tracking-tight;
   }
   
   .text-heading {
-    @apply text-xl font-semibold;
+    @apply text-xl font-semibold tracking-tight;
   }
   
   .text-body {
@@ -52,5 +52,41 @@
   
   .text-caption {
     @apply text-sm font-normal leading-5 text-white text-opacity-70;
+  }
+  
+  /* Animation utilities */
+  .animate-fade-in {
+    @apply animate-in fade-in duration-500;
+  }
+  
+  .animate-slide-up {
+    @apply animate-in slide-in-from-bottom-4 duration-500;
+  }
+  
+  /* Enhanced focus states for accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-transparent;
+  }
+  
+  /* Improved spacing tokens */
+  .section-spacing {
+    @apply space-y-8;
+  }
+  
+  .card-spacing {
+    @apply p-6;
+  }
+  
+  /* Status indicators */
+  .status-online {
+    @apply bg-green-400;
+  }
+  
+  .status-busy {
+    @apply bg-yellow-400;
+  }
+  
+  .status-offline {
+    @apply bg-gray-400;
   }
 }

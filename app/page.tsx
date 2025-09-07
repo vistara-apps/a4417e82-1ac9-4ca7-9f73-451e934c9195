@@ -14,9 +14,12 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
-import { Plus, Star, TrendingUp, Calendar, BookOpen } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { toast } from '@/components/ui/Toast';
+import { Plus, Star, TrendingUp, Calendar, BookOpen, Users } from 'lucide-react';
 import { type Group, type StudySession, type Resource, type Project } from '@/lib/types';
 import { APP_CONFIG, MAJORS, INTERESTS } from '@/lib/constants';
+import { debounce, searchGroups, searchResources, searchProjects } from '@/lib/utils';
 
 // Mock data for demonstration
 const mockGroups: Group[] = [
@@ -145,13 +148,25 @@ export default function HomePage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createType, setCreateType] = useState<'group' | 'session' | 'project'>('group');
   
+  // Filtered data state
+  const [filteredGroups, setFilteredGroups] = useState(mockGroups);
+  const [filteredResources, setFilteredResources] = useState(mockResources);
+  const [filteredProjects, setFilteredProjects] = useState(mockProjects);
+  
   useEffect(() => {
     setFrameReady();
   }, [setFrameReady]);
   
+  // Debounced search function
+  const debouncedSearch = debounce((query: string) => {
+    setFilteredGroups(searchGroups(mockGroups, query));
+    setFilteredResources(searchResources(mockResources, query));
+    setFilteredProjects(searchProjects(mockProjects, query));
+  }, 300);
+  
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    // Implement search logic here
+    debouncedSearch(query);
   };
   
   const handleCreateNew = (type: 'group' | 'session' | 'project') => {
@@ -160,7 +175,7 @@ export default function HomePage() {
   };
   
   const renderHomeContent = () => (
-    <div className="space-y-8">
+    <div className="section-spacing">
       {/* Welcome Section */}
       <Card className="text-center">
         <h1 className="text-display text-white mb-2">{APP_CONFIG.name}</h1>
@@ -217,12 +232,16 @@ export default function HomePage() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mockGroups.slice(0, 3).map((group) => (
+          {filteredGroups.slice(0, 3).map((group) => (
             <GroupCard
               key={group.groupId}
               group={group}
-              onJoin={(id) => console.log('Join group:', id)}
-              onView={(id) => console.log('View group:', id)}
+              onJoin={(id) => {
+                toast.success('Joined Group!', 'You have successfully joined the study group.');
+              }}
+              onView={(id) => {
+                toast.info('Group Details', 'Opening group details...');
+              }}
             />
           ))}
         </div>
@@ -275,16 +294,30 @@ export default function HomePage() {
         onFilter={() => console.log('Open filters')}
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockGroups.map((group) => (
-          <GroupCard
-            key={group.groupId}
-            group={group}
-            onJoin={(id) => console.log('Join group:', id)}
-            onView={(id) => console.log('View group:', id)}
-          />
-        ))}
-      </div>
+      {filteredGroups.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredGroups.map((group) => (
+            <GroupCard
+              key={group.groupId}
+              group={group}
+              onJoin={(id) => console.log('Join group:', id)}
+              onView={(id) => console.log('View group:', id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={Users}
+          title={searchQuery ? "No groups found" : "No study groups yet"}
+          description={
+            searchQuery 
+              ? `No groups match "${searchQuery}". Try adjusting your search terms.`
+              : "Be the first to create a study group and connect with fellow students!"
+          }
+          actionLabel="Create Group"
+          onAction={() => handleCreateNew('group')}
+        />
+      )}
     </div>
   );
   
@@ -307,16 +340,30 @@ export default function HomePage() {
         onFilter={() => console.log('Open filters')}
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockResources.map((resource) => (
-          <ResourceCard
-            key={resource.resourceId}
-            resource={resource}
-            onDownload={(id) => console.log('Download resource:', id)}
-            onView={(id) => console.log('View resource:', id)}
-          />
-        ))}
-      </div>
+      {filteredResources.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredResources.map((resource) => (
+            <ResourceCard
+              key={resource.resourceId}
+              resource={resource}
+              onDownload={(id) => console.log('Download resource:', id)}
+              onView={(id) => console.log('View resource:', id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={BookOpen}
+          title={searchQuery ? "No resources found" : "No resources shared yet"}
+          description={
+            searchQuery 
+              ? `No resources match "${searchQuery}". Try different keywords.`
+              : "Share your study materials and help fellow students succeed!"
+          }
+          actionLabel="Upload Resource"
+          onAction={() => console.log('Upload resource')}
+        />
+      )}
     </div>
   );
   
@@ -339,16 +386,30 @@ export default function HomePage() {
         onFilter={() => console.log('Open filters')}
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockProjects.map((project) => (
-          <ProjectCard
-            key={project.projectId}
-            project={project}
-            onJoin={(id) => console.log('Join project:', id)}
-            onView={(id) => console.log('View project:', id)}
-          />
-        ))}
-      </div>
+      {filteredProjects.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProjects.map((project) => (
+            <ProjectCard
+              key={project.projectId}
+              project={project}
+              onJoin={(id) => console.log('Join project:', id)}
+              onView={(id) => console.log('View project:', id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={Star}
+          title={searchQuery ? "No projects found" : "No collaborative projects yet"}
+          description={
+            searchQuery 
+              ? `No projects match "${searchQuery}". Try different search terms.`
+              : "Start a project and find collaborators to bring your ideas to life!"
+          }
+          actionLabel="Create Project"
+          onAction={() => handleCreateNew('project')}
+        />
+      )}
     </div>
   );
   

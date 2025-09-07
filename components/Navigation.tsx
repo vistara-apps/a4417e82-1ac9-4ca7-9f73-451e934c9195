@@ -91,7 +91,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       
       {/* Bottom Navigation for Mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-card p-2 flex justify-around">
-        {navItems.slice(0, 4).map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           
@@ -101,10 +101,10 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               variant={isActive ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => onTabChange(item.id)}
-              className="flex flex-col items-center space-y-1 px-2 py-2"
+              className="flex flex-col items-center space-y-1 px-1 py-2 min-w-0 flex-1"
             >
               <Icon className="w-4 h-4" />
-              <span className="text-xs">{item.label}</span>
+              <span className="text-xs truncate">{item.label}</span>
             </Button>
           );
         })}
